@@ -169,8 +169,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         webView.autoresizingMask = [.width, .height]
         host.addSubview(webView)
         if let nav = nav {
-            nav.frame.origin = NSPoint(x: 14, y: 14) // bottom left, floating over the page
-            nav.autoresizingMask = [.maxXMargin, .maxYMargin]
+            nav.frame.origin = NSPoint(x: (host.bounds.width - nav.frame.width) / 2, y: 18) // bottom centre
+            nav.autoresizingMask = [.minXMargin, .maxXMargin, .maxYMargin]
             host.addSubview(nav)
         }
     }
@@ -582,8 +582,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         win.isReleasedWhenClosed = false
         let popupNav = FloatingNav(target: self, back: #selector(goBack), forward: #selector(goForward),
                                    home: #selector(goHome), reload: #selector(reload))
-        popupNav.frame.origin = NSPoint(x: 14, y: 14)
-        popupNav.autoresizingMask = [.maxXMargin, .maxYMargin]
+        popupNav.frame.origin = NSPoint(x: (view.bounds.width - popupNav.frame.width) / 2, y: 18)
+        popupNav.autoresizingMask = [.minXMargin, .maxXMargin, .maxYMargin]
         view.addSubview(popupNav)
         popupObservations = [
             view.observe(\.canGoBack, options: [.initial, .new]) { observed, _ in

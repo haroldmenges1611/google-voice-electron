@@ -1,5 +1,5 @@
 // A floating "liquid glass" control with Back, Forward, Home and Reload. It sits over the page
-// (bottom left), is slightly faded until the pointer is over it, and always visible.
+// (bottom centre), is slightly faded until the pointer is over it, and always visible.
 
 import Cocoa
 
@@ -8,12 +8,12 @@ final class FloatingNav: NSView {
     private let forwardButton: NSButton
     private var tracking: NSTrackingArea?
 
-    private static let buttonSize: CGFloat = 32
-    private static let barHeight: CGFloat = 40
+    private static let buttonSize: CGFloat = 46
+    private static let barHeight: CGFloat = 58
 
     init(target: AnyObject, back: Selector, forward: Selector, home: Selector, reload: Selector) {
         func make(_ symbol: String, _ tip: String, _ action: Selector) -> NSButton {
-            let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+            let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
             let image = NSImage(systemSymbolName: symbol, accessibilityDescription: tip)?
                 .withSymbolConfiguration(config) ?? NSImage()
             let button = NSButton(image: image, target: target, action: action)
@@ -30,13 +30,13 @@ final class FloatingNav: NSView {
         let homeButton = make("house", "Back to Voice", home)
         let reloadButton = make("arrow.clockwise", "Reload", reload)
 
-        let width = 4 * FloatingNav.buttonSize + 3 * 2 + 16
+        let width = 4 * FloatingNav.buttonSize + 3 * 4 + 24
         let frame = NSRect(x: 0, y: 0, width: width, height: FloatingNav.barHeight)
         super.init(frame: frame)
 
         let stack = NSStackView(views: [backButton, forwardButton, homeButton, reloadButton])
-        stack.spacing = 2
-        stack.edgeInsets = NSEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+        stack.spacing = 4
+        stack.edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
         stack.frame = bounds
         stack.autoresizingMask = [.width, .height]
 
@@ -62,7 +62,7 @@ final class FloatingNav: NSView {
         wantsLayer = true
         layer?.shadowColor = NSColor.black.cgColor
         layer?.shadowOpacity = 0.22
-        layer?.shadowRadius = 10
+        layer?.shadowRadius = 14
         layer?.shadowOffset = NSSize(width: 0, height: -2)
         alphaValue = 0.75
     }
