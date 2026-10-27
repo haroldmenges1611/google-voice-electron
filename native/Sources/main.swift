@@ -76,9 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var titleObservation: NSKeyValueObservation?
     var micObservation: NSKeyValueObservation?
     var backObservation: NSKeyValueObservation?
-    var popupBackObservation: NSKeyValueObservation?
-    var mainNav: NSTitlebarAccessoryViewController?
-    var panelBar: NSView?
+    var forwardObservation: NSKeyValueObservation?
+    var popupObservations: [NSKeyValueObservation] = []
+    var nav: FloatingNav?
     let updater = Updater()
     var quitting = false
     var menuBarMode: Bool {
@@ -93,15 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         center.delegate = self
         center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
 
+        nav = FloatingNav(target: self, back: #selector(goBack), forward: #selector(goForward),
+                          home: #selector(goHome), reload: #selector(reload))
         makeWebView()
-        let bar = NSView(frame: NSRect(x: 0, y: panelSize.height - panelBarHeight, width: panelSize.width, height: panelBarHeight))
-        bar.autoresizingMask = [.width, .minYMargin]
-        bar.wantsLayer = true
-        bar.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        bar.addSubview(navBar(height: panelBarHeight))
-        bar.isHidden = true
-        panelContainer.addSubview(bar)
-        panelBar = bar
         applyMode()
 
         updater.isBusy = { [weak self] in
@@ -135,7 +129,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             NSApp.dockTile.badgeLabel = Int(badge) != nil ? badge : nil
         }
         backObservation = webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] _, _ in
-            self?.updateBackButton()
+            self?.updateNav()
+        }
+        forwardObservation = webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] _, _ in
+            self?.updateNav()
         }
         micObservation = webView.observe(\.microphoneCaptureState) { view, _ in
             debugLog("microphone state \(view.microphoneCaptureState.rawValue) (0 none, 1 active, 2 muted)")
@@ -161,59 +158,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
     }
 
-    // A Back button (a soft pill, like Voice's own), shown only when there is a page to go back to.
-    func backButton() -> NSButton {
-        let button = NSButton(title: "Back", target: self, action: #selector(goBack))
-        let symbol = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
-        button.image = NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "Back")?
-            .withSymbolConfiguration(symbol)
-        button.imagePosition = .imageLeading
-        button.imageHugsTitle = true
-        button.isBordered = false
-        button.font = .systemFont(ofSize: 12.5, weight: .medium)
-        button.contentTintColor = .labelColor
-        button.toolTip = "Back"
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 12
-        button.layer?.backgroundColor = NSColor(white: 0.5, alpha: 0.14).cgColor
-        return button
-    }
-
-    func navBar(height: CGFloat) -> NSView {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 84, height: height))
-        let button = backButton()
-        button.frame = NSRect(x: 10, y: (height - 24) / 2, width: 66, height: 24)
-        container.addSubview(button)
-        return container
-    }
-
-    func titlebarNav() -> NSTitlebarAccessoryViewController {
-        let accessory = NSTitlebarAccessoryViewController()
-        accessory.layoutAttribute = .right
-        accessory.view = navBar(height: 28)
-        accessory.isHidden = true
-        return accessory
-    }
-
-    let panelBarHeight: CGFloat = 36
-
-    func updateBackButton() {
-        let can = webView.canGoBack
-        debugLog("canGoBack \(can) at \(webView.url?.absoluteString ?? "nil")")
-        mainNav?.isHidden = !can
-        panelBar?.isHidden = !can
-        if webView.superview === panelContainer {
-            let bar = can ? panelBarHeight : 0
-            webView.frame = NSRect(x: 0, y: 0, width: panelContainer.bounds.width, height: panelContainer.bounds.height - bar)
-        }
+    func updateNav() {
+        nav?.update(canBack: webView.canGoBack, canForward: webView.canGoForward)
     }
 
     func attach(to host: NSView) {
         webView.removeFromSuperview()
-        let bar = (host === panelContainer && webView.canGoBack) ? panelBarHeight : 0
-        webView.frame = NSRect(x: 0, y: 0, width: host.bounds.width, height: host.bounds.height - bar)
+        nav?.removeFromSuperview()
+        webView.frame = host.bounds
         webView.autoresizingMask = [.width, .height]
         host.addSubview(webView)
+        if let nav = nav {
+            nav.frame.origin = NSPoint(x: 14, y: 14) // bottom left, floating over the page
+            nav.autoresizingMask = [.maxXMargin, .maxYMargin]
+            host.addSubview(nav)
+        }
     }
 
     func showWindow() {
@@ -226,10 +185,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             win.minSize = NSSize(width: 520, height: 480)
             win.isReleasedWhenClosed = false
             win.delegate = self
-            let nav = titlebarNav()
-            win.addTitlebarAccessoryViewController(nav)
-            mainNav = nav
-            nav.isHidden = !webView.canGoBack
             win.contentView = NSView(frame: NSRect(origin: .zero, size: windowSize))
             if !win.setFrameUsingName("GVMain") { win.center() }
             win.setFrameAutosaveName("GVMain")
@@ -318,7 +273,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         if panelWindow == nil { panelWindow = makePanelWindow() }
         guard let panel = panelWindow, !panel.isVisible else { return }
         attach(to: panelContainer)
-        updateBackButton()
+        updateNav()
 
         // Centre under the icon, kept on screen.
         let icon = buttonWindow.frame
@@ -625,11 +580,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         win.isReleasedWhenClosed = false
-        let popupNav = titlebarNav()
-        win.addTitlebarAccessoryViewController(popupNav)
-        popupBackObservation = view.observe(\.canGoBack, options: [.initial, .new]) { observed, _ in
-            popupNav.isHidden = !observed.canGoBack
-        }
+        let popupNav = FloatingNav(target: self, back: #selector(goBack), forward: #selector(goForward),
+                                   home: #selector(goHome), reload: #selector(reload))
+        popupNav.frame.origin = NSPoint(x: 14, y: 14)
+        popupNav.autoresizingMask = [.maxXMargin, .maxYMargin]
+        view.addSubview(popupNav)
+        popupObservations = [
+            view.observe(\.canGoBack, options: [.initial, .new]) { observed, _ in
+                popupNav.update(canBack: observed.canGoBack, canForward: observed.canGoForward)
+            },
+            view.observe(\.canGoForward, options: [.initial, .new]) { observed, _ in
+                popupNav.update(canBack: observed.canGoBack, canForward: observed.canGoForward)
+            },
+        ]
         win.contentView = view
         win.delegate = self
         win.level = .floating // stays in front of the menu bar panel
