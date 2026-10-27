@@ -8,7 +8,7 @@ import WebKit
 
 let homeURL = URL(string: "https://voice.google.com/")!
 let windowSize = NSSize(width: 1100, height: 760)
-let panelSize = NSSize(width: 780, height: 700)
+let panelSize = NSSize(width: 1000, height: 720)
 
 // Off by default. Turn on with: defaults write local.googlevoice.native debugLog -bool true
 // Appends to ~/Library/Logs/GoogleVoice.log, to see which request Google rejects.
