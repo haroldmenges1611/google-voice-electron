@@ -1,7 +1,7 @@
 #!/bin/bash
 # Builds a universal (Apple Silicon + Intel) "Timbre.app" and a zip. Needs only the Xcode
 # command line tools (swiftc). Output: native/build/
-# Version comes from native/VERSION (or the VERSION environment variable).
+# Version comes from the root VERSION file (or the VERSION environment variable).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -15,7 +15,7 @@ for arch in arm64 x86_64; do
 done
 lipo -create "$OUT/tmp/gv-arm64" "$OUT/tmp/gv-x86_64" -output "$APP/Contents/MacOS/Timbre"
 
-VERSION="${VERSION:-$(cat VERSION)}"
+VERSION="${VERSION:-$(cat ../VERSION)}"
 cp Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" -c "Set :CFBundleVersion $VERSION" "$APP/Contents/Info.plist"
 cp ../packaging/icon.icns "$APP/Contents/Resources/icon.icns"

@@ -24,9 +24,21 @@ browser: the app is about 400 KB and WebKit updates with macOS, so there is noth
 - A WebView2 window can't have controls floating over it, so Back, Forward, Home and Reload are a toolbar
   above the page instead of the glass control.
 - SmartScreen may warn about an unsigned app on first run: choose **More info → Run anyway**.
-- Build (macOS or Windows, needs the .NET SDK): `windows/build.sh`. Not yet run on a real Windows PC.
+- Not yet run on a real Windows PC.
 
-## Build (Mac)
+## Build
+
+One command builds both apps, from the same `VERSION` file:
+
+```bash
+./check.sh      # fast: confirms the Mac (Swift) and Windows (C#) apps both compile
+./build.sh      # builds both (or ./build.sh mac / ./build.sh windows)
+./release.sh    # builds both and publishes a GitHub release with all downloads
+```
+
+Windows needs the .NET SDK (macOS: `brew install dotnet`); the Windows app can be built on a Mac.
+
+## Build (Mac only)
 
 Needs macOS 13+ and the Xcode command line tools (`xcode-select --install`). No Node.
 
@@ -50,7 +62,7 @@ intact, swaps itself in place and reopens. For hands-off updates:
 
 - The repository must be public for the updater to read it. For a private repository, store a token
   that can read it: `defaults write local.googlevoice.native githubToken <token>`.
-- To ship a release: edit `native/VERSION`, then run `native/release.sh` (needs `gh` signed in).
+- To ship a release: edit `VERSION`, then run `./release.sh` (needs `gh` signed in).
 - The first updater-enabled build (1.0.3) has to be installed by hand once.
 - The app is only ad-hoc signed, so the updater trusts GitHub over HTTPS and the bundle ID, not a
   developer signature. Notarization would need a paid Apple Developer ID.
@@ -68,8 +80,10 @@ intact, swaps itself in place and reopens. For hands-off updates:
 ```
 native/Sources/main.swift    the whole app
 native/Info.plist            bundle info and microphone text
-native/build.sh              builds the universal .app and zip (version from native/VERSION)
-native/release.sh            builds and publishes a GitHub release (Mac and Windows)
+VERSION                      version number for both apps
+build.sh, check.sh, release.sh  build, compile-check and publish both apps
+CLAUDE.md                    working notes for changes across both apps
+native/build.sh              builds the universal Mac .app and zip
 windows/                     the Windows app (C#, WebView2); windows/build.sh builds it
 native/Sources/Updater.swift the self-updater
 packaging/icon.icns, .png    app icon

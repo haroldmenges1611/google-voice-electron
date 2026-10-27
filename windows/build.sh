@@ -7,7 +7,7 @@ export PATH="/opt/homebrew/bin:$PATH"
 export DOTNET_ROOT="${DOTNET_ROOT:-/opt/homebrew/opt/dotnet/libexec}"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
-VERSION="${VERSION:-$(cat ../native/VERSION)}"
+VERSION="${VERSION:-$(cat ../VERSION)}"
 rm -rf build
 mkdir -p build
 for rid in win-x64 win-arm64; do
