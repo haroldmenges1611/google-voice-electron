@@ -176,7 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                 contentRect: NSRect(origin: .zero, size: windowSize),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered, defer: false)
-            win.title = "Dialtone"
+            win.title = "Timbre"
             win.minSize = NSSize(width: 520, height: 480)
             win.isReleasedWhenClosed = false
             win.delegate = self
@@ -205,7 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             image.isTemplate = true
             item.button?.image = image
         } else {
-            item.button?.image = NSImage(systemSymbolName: "bubble.left.fill", accessibilityDescription: "Dialtone")
+            item.button?.image = NSImage(systemSymbolName: "bubble.left.fill", accessibilityDescription: "Timbre")
         }
         item.button?.target = self
         item.button?.action = #selector(statusClicked(_:))
@@ -289,7 +289,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func trayMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Show Dialtone", action: #selector(showPanelAction), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Show Timbre", action: #selector(showPanelAction), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Home", action: #selector(goHome), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "").target = self
         menu.addItem(.separator())
@@ -299,7 +299,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         menu.addItem(updateItem())
         menu.addItem(signOutItem())
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Dialtone", action: #selector(quit), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Quit Timbre", action: #selector(quit), keyEquivalent: "").target = self
         return menu
     }
 
@@ -335,7 +335,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         NSApp.activate(ignoringOtherApps: true)
         let box = NSAlert()
         box.messageText = "Sign out of Google?"
-        box.informativeText = "This clears the saved login in Dialtone. You can then sign in with a different account."
+        box.informativeText = "This clears the saved login in Timbre. You can then sign in with a different account."
         box.addButton(withTitle: "Sign Out")
         box.addButton(withTitle: "Cancel")
         guard box.runModal() == .alertFirstButtonReturn else { return }
@@ -382,9 +382,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return menu
         }
 
-        // Dialtone
-        let app = submenu("Dialtone")
-        add(app, "About Dialtone", #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: NSApp)
+        // Timbre
+        let app = submenu("Timbre")
+        add(app, "About Timbre", #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: NSApp)
         add(app, "Check for Updates…", #selector(checkForUpdates))
         app.addItem(.separator())
         app.addItem(modeItem())
@@ -392,11 +392,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         app.addItem(releaseMicItem())
         app.addItem(signOutItem())
         app.addItem(.separator())
-        add(app, "Hide Dialtone", #selector(NSApplication.hide(_:)), "h", target: NSApp)
+        add(app, "Hide Timbre", #selector(NSApplication.hide(_:)), "h", target: NSApp)
         add(app, "Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option], target: NSApp)
         add(app, "Show All", #selector(NSApplication.unhideAllApplications(_:)), target: NSApp)
         app.addItem(.separator())
-        add(app, "Quit Dialtone", #selector(quit), "q")
+        add(app, "Quit Timbre", #selector(quit), "q")
 
         // File
         let file = submenu("File")
@@ -443,13 +443,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         add(windowMenu, "Minimize", #selector(NSWindow.performMiniaturize(_:)), "m", target: nil)
         add(windowMenu, "Zoom", #selector(NSWindow.performZoom(_:)), "", target: nil)
         windowMenu.addItem(.separator())
-        add(windowMenu, "Show Dialtone", #selector(showPanelAction), "0", [.command, .shift])
+        add(windowMenu, "Show Timbre", #selector(showPanelAction), "0", [.command, .shift])
         add(windowMenu, "Bring All to Front", #selector(NSApplication.arrangeInFront(_:)), "", target: NSApp)
 
         // Help
         let help = submenu("Help")
         add(help, "Google Voice Help", #selector(openLink(_:)), represented: URL(string: "https://support.google.com/voice")!)
-        add(help, "Dialtone on GitHub", #selector(openLink(_:)), represented: repo)
+        add(help, "Timbre on GitHub", #selector(openLink(_:)), represented: repo)
         add(help, "Release Notes", #selector(openLink(_:)), represented: repo.appendingPathComponent("releases"))
         add(help, "Report an Issue", #selector(openLink(_:)), represented: repo.appendingPathComponent("issues/new"))
 
@@ -548,7 +548,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let title = String(((body["title"] as? String) ?? "").prefix(200))
         let text = String(((body["body"] as? String) ?? "").prefix(1000))
         let content = UNMutableNotificationContent()
-        content.title = title.isEmpty ? "Dialtone" : title
+        content.title = title.isEmpty ? "Timbre" : title
         content.body = text
         content.sound = .default
         UNUserNotificationCenter.current().add(

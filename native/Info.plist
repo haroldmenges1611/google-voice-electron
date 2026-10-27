@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Dialtone</string>
+    <string>Timbre</string>
     <key>CFBundleDisplayName</key>
-    <string>Dialtone</string>
+    <string>Timbre</string>
     <key>CFBundleExecutable</key>
-    <string>Dialtone</string>
+    <string>Timbre</string>
     <key>CFBundleIdentifier</key>
     <string>local.googlevoice.native</string>
     <key>CFBundleIconFile</key>
@@ -19,7 +19,7 @@
     <key>CFBundleVersion</key>
     <string>1</string>
     <!-- GitHub repository the updater reads releases from. -->
-    <key>DialtoneUpdateRepo</key>
+    <key>TimbreUpdateRepo</key>
     <string>haroldmenges1611/google-voice-electron</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Harold Menges. MIT License.</string>
@@ -31,6 +31,6 @@
     <true/>
     <!-- Shown by macOS the first time a call asks for the microphone. -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>Dialtone uses the microphone for calls.</string>
+    <string>Timbre uses the microphone for calls.</string>
 </dict>
 </plist>

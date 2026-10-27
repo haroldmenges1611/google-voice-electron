@@ -1,10 +1,10 @@
-# Dialtone
+# Timbre
 
 A native Mac app for Google Voice (unofficial, not affiliated with Google), written in Swift on macOS's built-in WebKit. No Electron, no bundled
 browser: the app is about 400 KB and WebKit updates with macOS, so there is nothing to keep current.
 
 - Runs as a normal windowed app by default (Dock icon, resizable, remembers its size).
-- **Menu Bar Mode** (Dialtone menu, or right-click the menu bar icon) shows it as a panel under a
+- **Menu Bar Mode** (Timbre menu, or right-click the menu bar icon) shows it as a panel under a
   speech-bubble icon with no Dock icon. The choice is remembered.
 - Closing the window keeps the app running so texts still arrive. Cmd-Q quits.
 - Notifications for new texts, microphone for calls, unread count on the Dock icon, Open at Login.
@@ -18,17 +18,17 @@ Needs macOS 13+ and the Xcode command line tools (`xcode-select --install`). No 
 native/build.sh
 ```
 
-Writes `native/build/Dialtone.app` (universal: Apple Silicon and Intel, ad-hoc signed) and
-`native/build/Dialtone.zip`. The app is self-contained, so you can copy it to any Mac.
+Writes `native/build/Timbre.app` (universal: Apple Silicon and Intel, ad-hoc signed) and
+`native/build/Timbre.zip`. The app is self-contained, so you can copy it to any Mac.
 
 It is not notarized. On another Mac, right-click it and choose **Open** the first time, or run
-`xattr -cr "Dialtone.app"`.
+`xattr -cr "Timbre.app"`.
 
 ## Updates
 
-Dialtone updates itself from this repository's latest GitHub release. It checks on launch and every
-6 hours, or on demand with **Check for Updates…** in the Dialtone menu. It asks first, never restarts
-while the microphone is in use (a call), then downloads `Dialtone.zip`, checks it is the same app and
+Timbre updates itself from this repository's latest GitHub release. It checks on launch and every
+6 hours, or on demand with **Check for Updates…** in the Timbre menu. It asks first, never restarts
+while the microphone is in use (a call), then downloads `Timbre.zip`, checks it is the same app and
 intact, swaps itself in place and reopens. For hands-off updates:
 `defaults write local.googlevoice.native autoInstall -bool true`.
 
@@ -64,5 +64,5 @@ scripts/make-tray-icon.py    regenerates the menu bar icon
 ## License
 
 [MIT](LICENSE) © 2026 Harold Menges. Open source: use, copy, modify and share it, keeping the copyright
-notice. Dialtone is unofficial and not affiliated with, endorsed by, or sponsored by Google. Google and
+notice. Timbre is unofficial and not affiliated with, endorsed by, or sponsored by Google. Google and
 Google Voice are trademarks of Google LLC. If you fork it, please give it a name of your own.

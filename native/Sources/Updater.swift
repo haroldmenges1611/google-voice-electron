@@ -2,7 +2,7 @@
 // installing (unless `defaults write local.googlevoice.native autoInstall -bool true`), never restarts
 // during a call, and replaces the .app in place.
 //
-// The repository comes from the DialtoneUpdateRepo key in Info.plist ("owner/name"). A private
+// The repository comes from the TimbreUpdateRepo key in Info.plist ("owner/name"). A private
 // repository needs a token: `defaults write local.googlevoice.native githubToken <token>`.
 
 import Cocoa
@@ -20,7 +20,7 @@ final class Updater {
         let assets: [Asset]
     }
 
-    private let repo = Bundle.main.object(forInfoDictionaryKey: "DialtoneUpdateRepo") as? String ?? ""
+    private let repo = Bundle.main.object(forInfoDictionaryKey: "TimbreUpdateRepo") as? String ?? ""
     private let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
     private var checking = false
     private var promptedVersion: String?
@@ -68,7 +68,7 @@ final class Updater {
     private func handle(_ release: Release, manual: Bool) {
         let latest = release.tag_name.hasPrefix("v") ? String(release.tag_name.dropFirst()) : release.tag_name
         guard latest.compare(currentVersion, options: .numeric) == .orderedDescending else {
-            if manual { alert("Dialtone is up to date", "You have version \(currentVersion).") }
+            if manual { alert("Timbre is up to date", "You have version \(currentVersion).") }
             return
         }
         guard let asset = release.assets.first(where: { $0.name.hasSuffix(".zip") }) else {
@@ -76,7 +76,7 @@ final class Updater {
             return
         }
         if isBusy() {
-            if manual { alert("Update \(latest) is available", "Dialtone is on a call. Try again when it ends.") }
+            if manual { alert("Update \(latest) is available", "Timbre is on a call. Try again when it ends.") }
             return
         }
         let auto = UserDefaults.standard.bool(forKey: "autoInstall")
@@ -86,7 +86,7 @@ final class Updater {
         if !auto {
             NSApp.activate(ignoringOtherApps: true)
             let box = NSAlert()
-            box.messageText = "Dialtone \(latest) is available"
+            box.messageText = "Timbre \(latest) is available"
             box.informativeText = "You have \(currentVersion).\n\n" + String((release.body ?? "").prefix(400))
             box.addButton(withTitle: "Install and Restart")
             box.addButton(withTitle: "Later")
@@ -98,7 +98,7 @@ final class Updater {
     private func install(asset: Release.Asset, version: String, releasePage: String) {
         let appURL = Bundle.main.bundleURL
         guard FileManager.default.isWritableFile(atPath: appURL.deletingLastPathComponent().path) else {
-            alert("Can't update in place", "Dialtone isn't in a folder you can write to. Opening the download page instead.")
+            alert("Can't update in place", "Timbre isn't in a folder you can write to. Opening the download page instead.")
             if let url = URL(string: releasePage) { NSWorkspace.shared.open(url) }
             return
         }
@@ -130,9 +130,9 @@ final class Updater {
         }.resume()
     }
 
-    /// Unzips and checks the app is Dialtone, newer, and intact. Returns the path of the new .app.
+    /// Unzips and checks the app is Timbre, newer, and intact. Returns the path of the new .app.
     private static func unpack(zip: URL, expectedVersion: String) throws -> URL {
-        let work = FileManager.default.temporaryDirectory.appendingPathComponent("dialtone-update-\(UUID().uuidString)")
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("timbre-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         try run("/usr/bin/ditto", ["-x", "-k", zip.path, work.path])
 
@@ -151,25 +151,28 @@ final class Updater {
 
     private func replaceAndRelaunch(with newApp: URL) {
         // A small script waits for this process to exit, swaps the app, and opens the new one.
+        // The new app keeps its own name (a rename from an older release takes effect here).
+        let destination = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent(newApp.lastPathComponent)
         let script = """
         #!/bin/sh
         while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
         rm -rf "$2.old"
-        if mv "$2" "$2.old" && mv "$3" "$2"; then
+        if mv "$2" "$2.old" && mv "$3" "$4"; then
           rm -rf "$2.old"
         elif [ ! -d "$2" ] && [ -d "$2.old" ]; then
           mv "$2.old" "$2"
+          exit 1
         fi
-        xattr -cr "$2" 2>/dev/null
-        open "$2"
+        xattr -cr "$4" 2>/dev/null
+        open "$4"
         """
-        let scriptURL = FileManager.default.temporaryDirectory.appendingPathComponent("dialtone-update.sh")
+        let scriptURL = FileManager.default.temporaryDirectory.appendingPathComponent("timbre-update.sh")
         do {
             try script.write(to: scriptURL, atomically: true, encoding: .utf8)
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/sh")
             process.arguments = [scriptURL.path, String(ProcessInfo.processInfo.processIdentifier),
-                                 Bundle.main.bundleURL.path, newApp.path]
+                                 Bundle.main.bundleURL.path, newApp.path, destination.path]
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
             try process.run()
