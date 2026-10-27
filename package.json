@@ -1,0 +1,17 @@
+{
+  "name": "google-voice-electron",
+  "productName": "Google Voice",
+  "version": "1.0.0",
+  "description": "Google Voice in the macOS menu bar, running on Chromium (Electron)",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "package": "electron-packager . \"Google Voice\" --platform=darwin --out=dist --overwrite --app-bundle-id=local.googlevoice.electron --app-version=1.0.0 --prune=true --ignore='^/(test|scripts|packaging|dist|assets|node_modules|\\.claude)(/|$)' --extra-resource=assets --extend-info=packaging/extend-info.plist"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "44.7.0"
+  }
+}
