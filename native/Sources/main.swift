@@ -78,7 +78,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var backObservation: NSKeyValueObservation?
     var forwardObservation: NSKeyValueObservation?
     var popupObservations: [NSKeyValueObservation] = []
-    var nav: FloatingNav?
+    var mainNav: NavController?
+    var popupNav: NavController?
     let updater = Updater()
     var quitting = false
     var menuBarMode: Bool {
@@ -93,9 +94,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         center.delegate = self
         center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
 
-        nav = FloatingNav(target: self, back: #selector(goBack), forward: #selector(goForward),
-                          home: #selector(goHome), reload: #selector(reload))
         makeWebView()
+        mainNav = NavController(webView: webView, onHome: { [weak self] in self?.goHome() })
         applyMode()
 
         updater.isBusy = { [weak self] in
@@ -159,20 +159,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     func updateNav() {
-        nav?.update(canBack: webView.canGoBack, canForward: webView.canGoForward)
+        mainNav?.nav.update(canBack: webView.canGoBack, canForward: webView.canGoForward)
     }
 
     func attach(to host: NSView) {
         webView.removeFromSuperview()
-        nav?.removeFromSuperview()
         webView.frame = host.bounds
         webView.autoresizingMask = [.width, .height]
         host.addSubview(webView)
-        if let nav = nav {
-            nav.frame.origin = NSPoint(x: (host.bounds.width - nav.frame.width) / 2, y: 18) // bottom centre
-            nav.autoresizingMask = [.minXMargin, .maxXMargin, .maxYMargin]
-            host.addSubview(nav)
-        }
     }
 
     func showWindow() {
@@ -193,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         attach(to: window!.contentView!)
         NSApp.activate(ignoringOtherApps: true)
         window!.makeKeyAndOrderFront(nil)
+        mainNav?.attach(to: window!)
     }
 
     func showPanelOrWindow() {
@@ -283,6 +278,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         panel.setFrameTopLeftPoint(NSPoint(x: x, y: icon.minY - 4))
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        mainNav?.attach(to: panel)
     }
 
     func windowDidEndLiveResize(_ notification: Notification) {
@@ -481,6 +477,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func windowWillClose(_ notification: Notification) {
         if let closing = notification.object as? NSWindow, closing === popupWindow {
+            popupNav?.detach()
+            popupNav = nil
+            popupObservations = []
             popupWindow = nil
             popupWebView = nil
         }
@@ -580,24 +579,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         win.isReleasedWhenClosed = false
-        let popupNav = FloatingNav(target: self, back: #selector(goBack), forward: #selector(goForward),
-                                   home: #selector(goHome), reload: #selector(reload))
-        popupNav.frame.origin = NSPoint(x: (view.bounds.width - popupNav.frame.width) / 2, y: 18)
-        popupNav.autoresizingMask = [.minXMargin, .maxXMargin, .maxYMargin]
-        view.addSubview(popupNav)
+        let controller = NavController(webView: view, onHome: { [weak self] in self?.goHome() })
         popupObservations = [
             view.observe(\.canGoBack, options: [.initial, .new]) { observed, _ in
-                popupNav.update(canBack: observed.canGoBack, canForward: observed.canGoForward)
+                controller.nav.update(canBack: observed.canGoBack, canForward: observed.canGoForward)
             },
             view.observe(\.canGoForward, options: [.initial, .new]) { observed, _ in
-                popupNav.update(canBack: observed.canGoBack, canForward: observed.canGoForward)
+                controller.nav.update(canBack: observed.canGoBack, canForward: observed.canGoForward)
             },
         ]
+        popupNav = controller
         win.contentView = view
         win.delegate = self
         win.level = .floating // stays in front of the menu bar panel
         win.center()
         win.makeKeyAndOrderFront(nil)
+        controller.attach(to: win)
         popupWindow = win
         popupWebView = view
         return view
