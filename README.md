@@ -1,7 +1,9 @@
-# Google Voice menu bar app (macOS, Chromium)
+# Google Voice for macOS (Chromium)
 
-A menu bar app that shows Google Voice in a panel. Click the speech-bubble icon, sign in once, and
-the login is kept between launches. New texts show as macOS notifications. No Dock icon.
+Google Voice in its own app. By default it runs like a normal Mac app (Dock icon, resizable window).
+Switch **Menu Bar Mode** on (Google Voice menu, or the tray menu) to get a panel under a speech-bubble
+menu bar icon with no Dock icon instead. The choice is remembered. Sign in once and the login is kept.
+New texts show as macOS notifications. Closing the window keeps the app running; Cmd-Q quits.
 
 This replaces the Swift version in `../google-voice-menubar`. That one used WebKit, which Google can
 refuse to sign into. This one runs on Electron, which bundles Chromium, and sends Chromium's normal
@@ -24,10 +26,12 @@ npm start                          # runs the app from the source folder
 npm run package
 ```
 
-This writes `dist/Google Voice-darwin-arm64/Google Voice.app` on Apple Silicon, or `darwin-x64` on
-Intel. Copy it to `/Applications`.
+This writes a **universal** (Apple Silicon + Intel) `dist/Google Voice-darwin-universal/Google Voice.app`
+and `dist/Google-Voice-universal.zip`. It is ad-hoc signed and needs no Node or Electron install, so
+you can copy it to any Mac running macOS 12 or later.
 
-The app is not code-signed. The first time, right-click it and choose **Open**, then confirm.
+The app is not notarized. On another Mac, after unzipping, either right-click it and choose **Open**,
+or run `xattr -cr "Google Voice.app"` once.
 
 ## Notifications
 
@@ -49,7 +53,7 @@ it to me.
 
 ## Settings and data
 
-- **Open at Login**: right-click the icon. Works best with the copy in `/Applications`.
+- **Open at Login**: Google Voice menu, or right-click the menu bar icon. Works best with the copy in `/Applications`.
 - **Reset the session**: quit the app and delete `~/Library/Application Support/Google Voice`
   (when built) or `~/Library/Application Support/google-voice-electron` (when run with `npm start`).
 - **Calls** use the microphone. macOS asks for permission the first time.
@@ -73,7 +77,6 @@ The e2e test does not check that macOS shows the notification banner. That needs
 ## Not covered yet
 
 - Clicking a notification opens the panel. It does not call the page's own click handler.
-- The app icon in `/Applications` is Electron's default. Only the menu bar icon is custom.
 - No automatic updates.
 - Google sign-in and the actual notification path have not been tried with a real Google account.
 
@@ -85,7 +88,8 @@ src/main.js                   menu bar icon, panel window, notifications, permis
 src/preload.js                notification bridge: replaces window.Notification inside the page
 src/policy.js                 pure rules (Google URLs, permissions, user agent, notification text)
 assets/                       menu bar icon (template PNGs), copied next to the packaged app
-packaging/extend-info.plist   LSUIElement: no Dock icon
-scripts/make-tray-icon.py     regenerates the icon PNGs (standard library only)
+packaging/                    app icon (icon.png, icon.icns) and extra Info.plist keys
+scripts/make-tray-icon.py     regenerates the menu bar icon PNGs (standard library only)
+scripts/make-app-icon.py      regenerates the app icon and icon.icns (needs macOS sips/iconutil)
 test/                         unit tests and the Electron end-to-end test
 ```

@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('node:fs');
 const path = require('node:path');
 const {
   app,
@@ -20,8 +21,14 @@ const policy = require('./policy');
 const TEST_MODE = process.env.GV_TEST === '1';
 const HOME_URL = TEST_MODE && process.env.GV_URL ? process.env.GV_URL : 'https://voice.google.com/';
 const TEST_ORIGIN = TEST_MODE ? new URL(HOME_URL).origin : null;
-const PANEL_SIZE = { width: 460, height: 680 };
-const POPUP_SIZE = { width: 480, height: 640 };
+const PANEL_SIZE = { width: 780, height: 700 };
+const POPUP_SIZE = { width: 780, height: 700 };
+const WINDOW_SIZE = { width: 1100, height: 760 };
+
+// 'window' runs like a normal app (Dock icon, resizable window); 'menubar' is a panel under the tray icon.
+let mode = 'window';
+let settings = {};
+let quitting = false;
 
 let tray = null;
 let panel = null;
@@ -30,6 +37,24 @@ const liveNotifications = new Set(); // keeps a notification alive until it is c
 
 function report(event, data = {}) {
   if (TEST_MODE) console.log(`GV_EVENT ${JSON.stringify({ event, ...data })}`);
+}
+
+function loadSettings() {
+  try {
+    settings = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'settings.json'), 'utf8'));
+  } catch {
+    settings = {};
+  }
+  mode = settings.mode === 'menubar' ? 'menubar' : 'window';
+}
+
+function saveSettings(patch) {
+  settings = { ...settings, ...patch };
+  try {
+    fs.writeFileSync(path.join(app.getPath('userData'), 'settings.json'), JSON.stringify(settings));
+  } catch (error) {
+    console.error('could not save settings:', error);
+  }
 }
 
 function openInBrowser(url) {
@@ -48,19 +73,42 @@ function guardNavigation(contents) {
 function handleWindowOpen({ url }) {
   // Google sign-in opens pop-ups. They are real windows in the same session, so cookies carry over.
   if (url === 'about:blank' || policy.isAppUrl(url, TEST_ORIGIN)) {
+    const existing = [...popups].find((popup) => !popup.isDestroyed());
+    if (existing) {
+      if (url !== 'about:blank') {
+        // Only one pop-up at a time: reuse it instead of opening another.
+        existing.loadURL(url);
+        existing.show();
+        existing.focus();
+        return { action: 'deny' };
+      }
+      // A script-driven pop-up (sign-in) needs a fresh window it can talk to; replace the old one.
+      existing.destroy();
+    }
     return { action: 'allow', overrideBrowserWindowOptions: POPUP_SIZE };
   }
   openInBrowser(url);
   return { action: 'deny' };
 }
 
+function trackPopup(popup) {
+  popups.add(popup);
+  popup.on('closed', () => popups.delete(popup));
+  popup.webContents.setWindowOpenHandler(handleWindowOpen);
+  popup.webContents.on('did-create-window', trackPopup);
+  popup.webContents.on('will-prevent-unload', (event) => event.preventDefault());
+  guardNavigation(popup.webContents);
+}
+
 function createPanel() {
-  panel = new BrowserWindow({
-    ...PANEL_SIZE,
+  const windowed = mode === 'window';
+  const win = new BrowserWindow({
+    ...(windowed ? { ...WINDOW_SIZE, ...settings.windowBounds, minWidth: 520, minHeight: 480 } : PANEL_SIZE),
+    title: 'Google Voice',
     show: false,
-    frame: false,
-    resizable: false,
-    fullscreenable: false,
+    frame: windowed,
+    resizable: windowed,
+    fullscreenable: windowed,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -71,16 +119,14 @@ function createPanel() {
     },
   });
 
-  const { webContents } = panel;
+  panel = win;
+  const { webContents } = win;
   webContents.setWindowOpenHandler(handleWindowOpen);
   guardNavigation(webContents);
 
-  webContents.on('did-create-window', (popup) => {
-    popups.add(popup);
-    popup.on('closed', () => popups.delete(popup));
-    popup.webContents.setWindowOpenHandler(handleWindowOpen);
-    guardNavigation(popup.webContents);
-  });
+  webContents.on('did-create-window', trackPopup);
+  // Never let a page's "leave site?" prompt keep a window open.
+  webContents.on('will-prevent-unload', (event) => event.preventDefault());
 
   webContents.on('render-process-gone', (_event, details) => {
     report('render-gone', { reason: details.reason });
@@ -92,11 +138,35 @@ function createPanel() {
   });
 
   // Hide when focus moves elsewhere, but not while a sign-in pop-up is in front.
-  panel.on('blur', () => {
-    if (popups.size === 0) panel.hide();
+  win.on('blur', () => {
+    if (!windowed && popups.size === 0) win.hide();
   });
 
-  panel.loadURL(HOME_URL);
+  if (windowed) {
+    win.once('ready-to-show', () => win.show());
+    // Closing the window keeps the app running (so texts still arrive); Cmd-Q quits.
+    win.on('close', (event) => {
+      if (!quitting) {
+        event.preventDefault();
+        win.hide();
+      }
+    });
+    let saveTimer = null;
+    const rememberBounds = () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        if (!win.isDestroyed() && !win.isMinimized() && !win.isFullScreen()) saveSettings({ windowBounds: win.getBounds() });
+      }, 500);
+    };
+    win.on('resize', rememberBounds);
+    win.on('move', rememberBounds);
+  }
+
+  win.on('closed', () => {
+    if (panel === win) panel = null;
+  });
+
+  win.loadURL(HOME_URL);
 }
 
 function probePage() {
@@ -157,7 +227,8 @@ function togglePanel() {
 
 function showPanel() {
   if (!panel) return;
-  if (tray) {
+  if (mode === 'window' && panel.isMinimized()) panel.restore();
+  if (mode === 'menubar' && tray) {
     // Centre the panel under the menu bar icon, kept on screen.
     const anchor = tray.getBounds();
     const { workArea } = screen.getDisplayNearestPoint({ x: anchor.x, y: anchor.y });
@@ -176,15 +247,78 @@ function buildContextMenu() {
     { label: 'Reload', click: () => panel.webContents.reload() },
     { label: 'Open in Browser', click: () => openInBrowser(HOME_URL) },
     { type: 'separator' },
+    ...modeItems(),
+    { type: 'separator' },
+    { label: 'Quit Google Voice', accelerator: 'Command+Q', click: () => app.quit() },
+  ]);
+}
+
+function modeItems() {
+  return [
+    {
+      label: 'Menu Bar Mode',
+      type: 'checkbox',
+      checked: mode === 'menubar',
+      click: (item) => applyMode(item.checked ? 'menubar' : 'window'),
+    },
     {
       label: 'Open at Login',
       type: 'checkbox',
       checked: app.getLoginItemSettings().openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
     },
-    { type: 'separator' },
-    { role: 'quit', label: 'Quit Google Voice' },
-  ]);
+  ];
+}
+
+function buildAppMenu() {
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    {
+      label: 'Google Voice',
+      submenu: [
+        { role: 'about', label: 'About Google Voice' },
+        { type: 'separator' },
+        ...modeItems(),
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { label: 'Quit Google Voice', accelerator: 'Command+Q', click: () => app.quit() },
+      ],
+    },
+    { role: 'editMenu' }, // gives Cmd-C, Cmd-V and Cmd-A in the page
+    {
+      label: 'View',
+      submenu: [
+        { label: 'Reload', accelerator: 'Command+R', click: () => panel && panel.webContents.reload() },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    { role: 'windowMenu' },
+  ]));
+}
+
+// Switches between normal-window and menu-bar mode, rebuilding the window to match.
+function applyMode(next) {
+  mode = next;
+  saveSettings({ mode });
+  popups.forEach((popup) => popup.destroy());
+  if (panel) panel.destroy();
+  if (mode === 'menubar') {
+    if (app.dock) app.dock.hide();
+    if (!tray) createTrayIfPossible();
+  } else {
+    if (tray) tray.destroy();
+    tray = null;
+    if (app.dock) app.dock.show();
+  }
+  buildAppMenu();
+  createPanel();
+  if (mode === 'menubar') showPanel();
 }
 
 function configureSession() {
@@ -200,14 +334,20 @@ function configureSession() {
 }
 
 function start() {
-  if (app.dock) app.dock.hide();
+  loadSettings();
   configureSession();
-  Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { role: 'appMenu' },
-    { role: 'editMenu' }, // gives Cmd-C, Cmd-V and Cmd-A in the panel
-  ]));
+  buildAppMenu();
   ipcMain.on('gv:notify', onNotify);
+  if (mode === 'menubar') {
+    if (app.dock) app.dock.hide();
+    createTrayIfPossible();
+  } else if (app.dock && !app.isPackaged) {
+    app.dock.setIcon(path.join(__dirname, '..', 'packaging', 'icon.png')); // dev runs only; the .app has its own
+  }
   createPanel();
+}
+
+function createTrayIfPossible() {
   try {
     createTray();
   } catch (error) {
@@ -218,7 +358,15 @@ function start() {
 
 if (app.requestSingleInstanceLock()) {
   app.on('second-instance', showPanel);
+  app.on('activate', () => {
+    if (mode === 'window') showPanel(); // Dock icon clicked
+  });
   app.on('window-all-closed', () => {}); // stay in the menu bar
+  app.on('before-quit', () => {
+    quitting = true;
+    // Destroy rather than close, so no window can veto the quit.
+    BrowserWindow.getAllWindows().forEach((win) => win.destroy());
+  });
   app.whenReady().then(start);
 } else {
   app.quit();
