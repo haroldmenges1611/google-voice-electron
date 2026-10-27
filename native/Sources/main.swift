@@ -1,4 +1,4 @@
-// Google Voice as a native macOS app on the system WebKit (WKWebView). No bundled browser:
+// Google Voice as a native macOS app (unofficial) on the system WebKit (WKWebView). No bundled browser:
 // WebKit updates with macOS. Runs as a normal windowed app, or as a menu bar panel.
 
 import Cocoa
@@ -153,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                 contentRect: NSRect(origin: .zero, size: windowSize),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered, defer: false)
-            win.title = "Google Voice"
+            win.title = "Dialtone"
             win.minSize = NSSize(width: 520, height: 480)
             win.isReleasedWhenClosed = false
             win.delegate = self
@@ -181,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             image.isTemplate = true
             item.button?.image = image
         } else {
-            item.button?.image = NSImage(systemSymbolName: "bubble.left.fill", accessibilityDescription: "Google Voice")
+            item.button?.image = NSImage(systemSymbolName: "bubble.left.fill", accessibilityDescription: "Dialtone")
         }
         item.button?.target = self
         item.button?.action = #selector(statusClicked(_:))
@@ -225,13 +225,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func trayMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Show Google Voice", action: #selector(showPanelAction), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Show Dialtone", action: #selector(showPanelAction), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(modeItem())
         menu.addItem(loginItem())
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Google Voice", action: #selector(quit), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Quit Dialtone", action: #selector(quit), keyEquivalent: "").target = self
         return menu
     }
 
@@ -255,15 +255,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let main = NSMenu()
 
         let appItem = NSMenuItem()
-        let app = NSMenu(title: "Google Voice")
-        app.addItem(withTitle: "About Google Voice", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let app = NSMenu(title: "Dialtone")
+        app.addItem(withTitle: "About Dialtone", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         app.addItem(.separator())
         app.addItem(modeItem())
         app.addItem(loginItem())
         app.addItem(.separator())
-        app.addItem(withTitle: "Hide Google Voice", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        app.addItem(withTitle: "Hide Dialtone", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         app.addItem(.separator())
-        let quitItem = app.addItem(withTitle: "Quit Google Voice", action: #selector(quit), keyEquivalent: "q")
+        let quitItem = app.addItem(withTitle: "Quit Dialtone", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         appItem.submenu = app
         main.addItem(appItem)
@@ -361,7 +361,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let title = String(((body["title"] as? String) ?? "").prefix(200))
         let text = String(((body["body"] as? String) ?? "").prefix(1000))
         let content = UNMutableNotificationContent()
-        content.title = title.isEmpty ? "Google Voice" : title
+        content.title = title.isEmpty ? "Dialtone" : title
         content.body = text
         content.sound = .default
         UNUserNotificationCenter.current().add(

@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Google Voice</string>
+    <string>Dialtone</string>
     <key>CFBundleDisplayName</key>
-    <string>Google Voice</string>
+    <string>Dialtone</string>
     <key>CFBundleExecutable</key>
-    <string>Google Voice</string>
+    <string>Dialtone</string>
     <key>CFBundleIdentifier</key>
     <string>local.googlevoice.native</string>
     <key>CFBundleIconFile</key>
@@ -26,6 +26,6 @@
     <true/>
     <!-- Shown by macOS the first time a call asks for the microphone. -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>Google Voice uses the microphone for calls.</string>
+    <string>Dialtone uses the microphone for calls.</string>
 </dict>
 </plist>
