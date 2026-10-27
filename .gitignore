@@ -1,2 +1,5 @@
 native/build/
 .DS_Store
+windows/build/
+windows/bin/
+windows/obj/

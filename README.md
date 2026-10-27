@@ -10,7 +10,23 @@ browser: the app is about 400 KB and WebKit updates with macOS, so there is noth
 - Notifications for new texts, microphone for calls, unread count on the Dock icon, Open at Login.
 - Sign-in and call pop-ups open in a single extra window. Other links open in your browser.
 
-## Build
+## Windows
+
+`windows/` is the same app for Windows 10 and 11, written in C# (WinForms) on Microsoft Edge's
+**WebView2**, which is Chromium and updates with Windows, like WebKit does on the Mac.
+
+- Download `Timbre-win-x64.exe` (most PCs) or `Timbre-win-arm64.exe` (Snapdragon / ARM) from the latest
+  release and run it. One file, nothing to install. It needs the WebView2 Runtime, which Windows 11 and
+  current Windows 10 already have (otherwise Timbre offers the download).
+- Same behaviour: single pop-up for sign-in and calls, notifications, microphone only for the active
+  app, Sign Out / Switch Account, Go menu (Calls, Messages, Voicemail), Start with Windows, and the same
+  GitHub self-updater. **Tray Mode** is the Windows version of Menu Bar Mode.
+- A WebView2 window can't have controls floating over it, so Back, Forward, Home and Reload are a toolbar
+  above the page instead of the glass control.
+- SmartScreen may warn about an unsigned app on first run: choose **More info → Run anyway**.
+- Build (macOS or Windows, needs the .NET SDK): `windows/build.sh`. Not yet run on a real Windows PC.
+
+## Build (Mac)
 
 Needs macOS 13+ and the Xcode command line tools (`xcode-select --install`). No Node.
 
@@ -53,11 +69,13 @@ intact, swaps itself in place and reopens. For hands-off updates:
 native/Sources/main.swift    the whole app
 native/Info.plist            bundle info and microphone text
 native/build.sh              builds the universal .app and zip (version from native/VERSION)
-native/release.sh            builds and publishes a GitHub release
+native/release.sh            builds and publishes a GitHub release (Mac and Windows)
+windows/                     the Windows app (C#, WebView2); windows/build.sh builds it
 native/Sources/Updater.swift the self-updater
 packaging/icon.icns, .png    app icon
 assets/                      menu bar icon (template PNGs)
 scripts/make-app-icon.py     regenerates the app icon (needs macOS sips/iconutil)
+scripts/make-windows-icon.py regenerates windows/Timbre.ico
 scripts/make-tray-icon.py    regenerates the menu bar icon
 ```
 
