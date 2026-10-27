@@ -155,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
     }
 
-    // Back, Forward and Home buttons, so there is always a way out of a page (Upgrade, payments).
+    // A Back button, so there is always a way out of a page (Upgrade, payments).
     func navBar() -> NSStackView {
         func button(_ symbol: String, _ tip: String, _ action: Selector) -> NSButton {
             let image = NSImage(systemSymbolName: symbol, accessibilityDescription: tip) ?? NSImage()
@@ -164,14 +164,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             b.toolTip = tip
             return b
         }
-        let stack = NSStackView(views: [
-            button("chevron.left", "Back", #selector(goBack)),
-            button("chevron.right", "Forward", #selector(goForward)),
-            button("house", "Back to Voice", #selector(goHome)),
-        ])
-        stack.spacing = 14
+        let stack = NSStackView(views: [button("chevron.left", "Back", #selector(goBack))])
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
-        stack.frame = NSRect(x: 0, y: 0, width: 110, height: 28)
+        stack.frame = NSRect(x: 0, y: 0, width: 48, height: 28)
         return stack
     }
 
