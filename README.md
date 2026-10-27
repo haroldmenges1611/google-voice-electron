@@ -63,6 +63,6 @@ scripts/make-tray-icon.py    regenerates the menu bar icon
 
 ## License
 
-Copyright © 2026 Harold Menges. Free to use, not open source: the owner keeps ownership and all rights,
-and copying, modifying or redistributing it needs written permission. See [LICENSE](LICENSE). Unofficial;
-not affiliated with Google.
+[MIT](LICENSE) © 2026 Harold Menges. Open source: use, copy, modify and share it, keeping the copyright
+notice. Dialtone is unofficial and not affiliated with, endorsed by, or sponsored by Google. Google and
+Google Voice are trademarks of Google LLC. If you fork it, please give it a name of your own.
