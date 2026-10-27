@@ -24,6 +24,21 @@ Writes `native/build/Dialtone.app` (universal: Apple Silicon and Intel, ad-hoc s
 It is not notarized. On another Mac, right-click it and choose **Open** the first time, or run
 `xattr -cr "Dialtone.app"`.
 
+## Updates
+
+Dialtone updates itself from this repository's latest GitHub release. It checks on launch and every
+6 hours, or on demand with **Check for Updates…** in the Dialtone menu. It asks first, never restarts
+while the microphone is in use (a call), then downloads `Dialtone.zip`, checks it is the same app and
+intact, swaps itself in place and reopens. For hands-off updates:
+`defaults write local.googlevoice.native autoInstall -bool true`.
+
+- The repository must be public for the updater to read it. For a private repository, store a token
+  that can read it: `defaults write local.googlevoice.native githubToken <token>`.
+- To ship a release: edit `native/VERSION`, then run `native/release.sh` (needs `gh` signed in).
+- The first updater-enabled build (1.0.3) has to be installed by hand once.
+- The app is only ad-hoc signed, so the updater trusts GitHub over HTTPS and the bundle ID, not a
+  developer signature. Notarization would need a paid Apple Developer ID.
+
 ## Data and troubleshooting
 
 - Your login is kept by WebKit in `~/Library/WebKit/local.googlevoice.native`. Delete it (app quit) to sign out.
@@ -37,7 +52,9 @@ It is not notarized. On another Mac, right-click it and choose **Open** the firs
 ```
 native/Sources/main.swift    the whole app
 native/Info.plist            bundle info and microphone text
-native/build.sh              builds the universal .app and zip
+native/build.sh              builds the universal .app and zip (version from native/VERSION)
+native/release.sh            builds and publishes a GitHub release
+native/Sources/Updater.swift the self-updater
 packaging/icon.icns, .png    app icon
 assets/                      menu bar icon (template PNGs)
 scripts/make-app-icon.py     regenerates the app icon (needs macOS sips/iconutil)

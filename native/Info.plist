@@ -18,6 +18,9 @@
     <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <!-- GitHub repository the updater reads releases from. -->
+    <key>DialtoneUpdateRepo</key>
+    <string>haroldmenges1611/google-voice-electron</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSPrincipalClass</key>

@@ -75,6 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var popupWebView: WKWebView?
     var titleObservation: NSKeyValueObservation?
     var micObservation: NSKeyValueObservation?
+    let updater = Updater()
     var quitting = false
     var menuBarMode: Bool {
         get { UserDefaults.standard.string(forKey: "mode") == "menubar" }
@@ -95,6 +96,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         popover.contentSize = panelSize
         popover.behavior = .applicationDefined
         applyMode()
+
+        updater.isBusy = { [weak self] in
+            guard let view = self?.webView else { return false }
+            return view.microphoneCaptureState != .none // a call may be in progress
+        }
+        updater.start()
     }
 
     func makeWebView() {
@@ -235,6 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         menu.addItem(modeItem())
         menu.addItem(loginItem())
         menu.addItem(releaseMicItem())
+        menu.addItem(updateItem())
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Dialtone", action: #selector(quit), keyEquivalent: "").target = self
         return menu
@@ -254,6 +262,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         item.target = self
         return item
     }
+
+    func updateItem() -> NSMenuItem {
+        let item = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    @objc func checkForUpdates() { updater.check(manual: true) }
 
     @objc func releaseMicrophone() {
         webView.setMicrophoneCaptureState(.none, completionHandler: {})
@@ -276,6 +292,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         app.addItem(modeItem())
         app.addItem(loginItem())
         app.addItem(releaseMicItem())
+        app.addItem(updateItem())
         app.addItem(.separator())
         app.addItem(withTitle: "Hide Dialtone", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         app.addItem(.separator())
