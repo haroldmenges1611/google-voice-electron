@@ -244,6 +244,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         menu.addItem(loginItem())
         menu.addItem(releaseMicItem())
         menu.addItem(updateItem())
+        menu.addItem(signOutItem())
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Dialtone", action: #selector(quit), keyEquivalent: "").target = self
         return menu
@@ -270,6 +271,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         return item
     }
 
+    func signOutItem() -> NSMenuItem {
+        let item = NSMenuItem(title: "Sign Out / Switch Account…", action: #selector(signOut), keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    /// Clears the saved Google login, then reloads Voice so a different account can be chosen.
+    @objc func signOut() {
+        NSApp.activate(ignoringOtherApps: true)
+        let box = NSAlert()
+        box.messageText = "Sign out of Google?"
+        box.informativeText = "This clears the saved login in Dialtone. You can then sign in with a different account."
+        box.addButton(withTitle: "Sign Out")
+        box.addButton(withTitle: "Cancel")
+        guard box.runModal() == .alertFirstButtonReturn else { return }
+        popupWindow?.close()
+        WKWebsiteDataStore.default().removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
+                                                modifiedSince: .distantPast) { [weak self] in
+            self?.webView.load(URLRequest(url: homeURL))
+            self?.showPanelOrWindow()
+        }
+    }
+
     @objc func checkForUpdates() { updater.check(manual: true) }
 
     @objc func releaseMicrophone() {
@@ -294,6 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         app.addItem(loginItem())
         app.addItem(releaseMicItem())
         app.addItem(updateItem())
+        app.addItem(signOutItem())
         app.addItem(.separator())
         app.addItem(withTitle: "Hide Dialtone", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         app.addItem(.separator())
