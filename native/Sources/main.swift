@@ -117,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.allowsBackForwardNavigationGestures = false
+        webView.allowsBackForwardNavigationGestures = true
         titleObservation = webView.observe(\.title) { view, _ in
             // Google Voice puts the unread count in the title, e.g. "(3) Calls".
             let title = view.title ?? ""
@@ -237,6 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     func trayMenu() -> NSMenu {
         let menu = NSMenu()
         menu.addItem(withTitle: "Show Dialtone", action: #selector(showPanelAction), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Home", action: #selector(goHome), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(modeItem())
@@ -315,6 +316,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
         let viewItem = NSMenuItem()
         let view = NSMenu(title: "View")
+        view.addItem(withTitle: "Home", action: #selector(goHome), keyEquivalent: "H").target = self
+        view.addItem(withTitle: "Back", action: #selector(goBack), keyEquivalent: "[").target = self
+        view.addItem(withTitle: "Forward", action: #selector(goForward), keyEquivalent: "]").target = self
         view.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "r").target = self
         view.addItem(.separator())
         view.addItem(withTitle: "Actual Size", action: #selector(zoomReset), keyEquivalent: "0").target = self
@@ -353,7 +357,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     @objc func showPanelAction() { showPanelOrWindow() }
-    @objc func reload() { webView.reload() }
+    // Menu commands act on the pop-up when it is the front window, otherwise on the main view.
+    func activeWebView() -> WKWebView {
+        if let popup = popupWebView, popupWindow?.isKeyWindow == true { return popup }
+        return webView
+    }
+
+    @objc func reload() { activeWebView().reload() }
+    @objc func goBack() { activeWebView().goBack() }
+    @objc func goForward() { activeWebView().goForward() }
+
+    /// Back to Voice, from any page the app ended up on (payments, account pages). Closes the pop-up.
+    @objc func goHome() {
+        popupWindow?.close()
+        webView.load(URLRequest(url: homeURL))
+        showPanelOrWindow()
+    }
     @objc func zoomIn() { webView.pageZoom = min(webView.pageZoom + 0.1, 3) }
     @objc func zoomOut() { webView.pageZoom = max(webView.pageZoom - 0.1, 0.5) }
     @objc func zoomReset() { webView.pageZoom = 1 }
@@ -474,6 +493,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let view = WKWebView(frame: NSRect(origin: .zero, size: panelSize), configuration: configuration)
         view.navigationDelegate = self
         view.uiDelegate = self
+        view.allowsBackForwardNavigationGestures = true
         let win = NSWindow(
             contentRect: NSRect(origin: .zero, size: panelSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
