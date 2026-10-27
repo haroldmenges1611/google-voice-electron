@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var webView: WKWebView!
     var window: NSWindow?
     var statusItem: NSStatusItem?
-    let popover = NSPopover()
+    var panelWindow: NSPanel?
     let panelContainer = NSView(frame: NSRect(origin: .zero, size: panelSize))
     var clickMonitor: Any?
     var popupWindow: NSWindow?
@@ -102,11 +102,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         bar.isHidden = true
         panelContainer.addSubview(bar)
         panelBar = bar
-        let controller = NSViewController()
-        controller.view = panelContainer
-        popover.contentViewController = controller
-        popover.contentSize = panelSize
-        popover.behavior = .applicationDefined
         applyMode()
 
         updater.isBusy = { [weak self] in
@@ -268,13 +263,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
         // Clicks outside the app close the panel (not while a sign-in pop-up is open).
         clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            guard let self = self, self.popupWindow == nil, self.popover.isShown else { return }
-            self.popover.performClose(nil)
+            guard let self = self, self.popupWindow == nil, self.panelWindow?.isVisible == true else { return }
+            self.panelWindow?.orderOut(nil)
         }
     }
 
     func removeStatusItem() {
-        if popover.isShown { popover.performClose(nil) }
+        panelWindow?.orderOut(nil)
         if let item = statusItem { NSStatusBar.system.removeStatusItem(item) }
         statusItem = nil
         if let monitor = clickMonitor { NSEvent.removeMonitor(monitor) }
@@ -286,19 +281,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             statusItem?.menu = trayMenu()
             statusItem?.button?.performClick(nil)
             statusItem?.menu = nil
-        } else if popover.isShown {
-            popover.performClose(nil)
+        } else if panelWindow?.isVisible == true {
+            panelWindow?.orderOut(nil)
         } else {
             showPopover()
         }
     }
 
+    /// The menu bar panel: a chromeless window under the icon that you can resize from its edges.
+    func makePanelWindow() -> NSPanel {
+        let saved = UserDefaults.standard.array(forKey: "panelSize") as? [Double]
+        let size = (saved?.count == 2) ? NSSize(width: saved![0], height: saved![1]) : panelSize
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .resizable, .fullSizeContentView],
+            backing: .buffered, defer: false)
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            panel.standardWindowButton(button)?.isHidden = true
+        }
+        panel.isMovable = false
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.minSize = NSSize(width: 520, height: 480)
+        panel.delegate = self
+        panelContainer.frame = NSRect(origin: .zero, size: size)
+        panel.contentView = panelContainer
+        return panel
+    }
+
     func showPopover() {
-        guard let button = statusItem?.button, !popover.isShown else { return }
+        guard let button = statusItem?.button, let buttonWindow = button.window else { return }
+        if panelWindow == nil { panelWindow = makePanelWindow() }
+        guard let panel = panelWindow, !panel.isVisible else { return }
         attach(to: panelContainer)
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        updateBackButton()
+
+        // Centre under the icon, kept on screen.
+        let icon = buttonWindow.frame
+        let screen = buttonWindow.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
+        let size = panel.frame.size
+        let x = min(max(icon.midX - size.width / 2, screen.minX + 8), screen.maxX - size.width - 8)
+        panel.setFrameTopLeftPoint(NSPoint(x: x, y: icon.minY - 4))
         NSApp.activate(ignoringOtherApps: true)
-        popover.contentViewController?.view.window?.makeKey()
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let panel = notification.object as? NSPanel, panel === panelWindow else { return }
+        UserDefaults.standard.set([Double(panel.frame.width), Double(panel.frame.height)], forKey: "panelSize")
     }
 
     func trayMenu() -> NSMenu {
