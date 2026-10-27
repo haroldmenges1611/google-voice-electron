@@ -362,7 +362,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func buildMenus() {
         let main = NSMenu()
-        let repo = URL(string: "https://github.com/haroldmenges1611/google-voice-electron")!
+        let repo = URL(string: "https://github.com/haroldmenges1611/timbre")!
 
         @discardableResult
         func add(_ menu: NSMenu, _ title: String, _ action: Selector?, _ key: String = "",

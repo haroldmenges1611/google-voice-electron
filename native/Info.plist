@@ -20,7 +20,7 @@
     <string>1</string>
     <!-- GitHub repository the updater reads releases from. -->
     <key>TimbreUpdateRepo</key>
-    <string>haroldmenges1611/google-voice-electron</string>
+    <string>haroldmenges1611/timbre</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Harold Menges. MIT License.</string>
     <key>LSMinimumSystemVersion</key>
