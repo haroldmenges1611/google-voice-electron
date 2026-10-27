@@ -361,58 +361,112 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func buildMenus() {
         let main = NSMenu()
+        let repo = URL(string: "https://github.com/haroldmenges1611/google-voice-electron")!
 
-        let appItem = NSMenuItem()
-        let app = NSMenu(title: "Dialtone")
-        app.addItem(withTitle: "About Dialtone", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        @discardableResult
+        func add(_ menu: NSMenu, _ title: String, _ action: Selector?, _ key: String = "",
+                 _ modifiers: NSEvent.ModifierFlags = [.command], target: AnyObject? = self,
+                 represented: Any? = nil) -> NSMenuItem {
+            let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
+            item.keyEquivalentModifierMask = key.isEmpty ? [] : modifiers
+            item.target = target
+            item.representedObject = represented
+            return item
+        }
+        func submenu(_ title: String) -> NSMenu {
+            let item = NSMenuItem()
+            let menu = NSMenu(title: title)
+            item.submenu = menu
+            main.addItem(item)
+            return menu
+        }
+
+        // Dialtone
+        let app = submenu("Dialtone")
+        add(app, "About Dialtone", #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: NSApp)
+        add(app, "Check for Updates…", #selector(checkForUpdates))
         app.addItem(.separator())
         app.addItem(modeItem())
         app.addItem(loginItem())
         app.addItem(releaseMicItem())
-        app.addItem(updateItem())
         app.addItem(signOutItem())
         app.addItem(.separator())
-        app.addItem(withTitle: "Hide Dialtone", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        add(app, "Hide Dialtone", #selector(NSApplication.hide(_:)), "h", target: NSApp)
+        add(app, "Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option], target: NSApp)
+        add(app, "Show All", #selector(NSApplication.unhideAllApplications(_:)), target: NSApp)
         app.addItem(.separator())
-        let quitItem = app.addItem(withTitle: "Quit Dialtone", action: #selector(quit), keyEquivalent: "q")
-        quitItem.target = self
-        appItem.submenu = app
-        main.addItem(appItem)
+        add(app, "Quit Dialtone", #selector(quit), "q")
 
-        let editItem = NSMenuItem()
-        let edit = NSMenu(title: "Edit")
-        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
-        edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        // File
+        let file = submenu("File")
+        add(file, "Close Window", #selector(NSWindow.performClose(_:)), "w", target: nil)
+        add(file, "Open Voice in Browser", #selector(openLink(_:)), "o", [.command, .shift], represented: homeURL)
+
+        // Edit
+        let edit = submenu("Edit")
+        add(edit, "Undo", Selector(("undo:")), "z", target: nil)
+        add(edit, "Redo", Selector(("redo:")), "z", [.command, .shift], target: nil)
         edit.addItem(.separator())
-        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-        editItem.submenu = edit
-        main.addItem(editItem)
+        add(edit, "Cut", #selector(NSText.cut(_:)), "x", target: nil)
+        add(edit, "Copy", #selector(NSText.copy(_:)), "c", target: nil)
+        add(edit, "Paste", #selector(NSText.paste(_:)), "v", target: nil)
+        add(edit, "Paste and Match Style", Selector(("pasteAsPlainText:")), "v", [.command, .option, .shift], target: nil)
+        add(edit, "Delete", Selector(("delete:")), "", target: nil)
+        add(edit, "Select All", #selector(NSText.selectAll(_:)), "a", target: nil)
+        edit.addItem(.separator())
+        add(edit, "Emoji & Symbols", #selector(NSApplication.orderFrontCharacterPalette(_:)), "e", [.command, .control], target: nil)
 
-        let viewItem = NSMenuItem()
-        let view = NSMenu(title: "View")
-        view.addItem(withTitle: "Home", action: #selector(goHome), keyEquivalent: "H").target = self
-        view.addItem(withTitle: "Back", action: #selector(goBack), keyEquivalent: "[").target = self
-        view.addItem(withTitle: "Forward", action: #selector(goForward), keyEquivalent: "]").target = self
-        view.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "r").target = self
+        // View
+        let view = submenu("View")
+        add(view, "Back", #selector(goBack), "[")
+        add(view, "Forward", #selector(goForward), "]")
+        add(view, "Reload", #selector(reload), "r")
         view.addItem(.separator())
-        view.addItem(withTitle: "Actual Size", action: #selector(zoomReset), keyEquivalent: "0").target = self
-        view.addItem(withTitle: "Zoom In", action: #selector(zoomIn), keyEquivalent: "+").target = self
-        view.addItem(withTitle: "Zoom Out", action: #selector(zoomOut), keyEquivalent: "-").target = self
-        viewItem.submenu = view
-        main.addItem(viewItem)
+        add(view, "Actual Size", #selector(zoomReset), "0")
+        add(view, "Zoom In", #selector(zoomIn), "+")
+        add(view, "Zoom Out", #selector(zoomOut), "-")
+        view.addItem(.separator())
+        add(view, "Enter Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control], target: nil)
 
-        let windowItem = NSMenuItem()
-        let windowMenu = NSMenu(title: "Window")
-        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
-        windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
-        windowItem.submenu = windowMenu
-        main.addItem(windowItem)
+        // Go
+        let go = submenu("Go")
+        add(go, "Voice Home", #selector(goHome), "h", [.command, .shift])
+        go.addItem(.separator())
+        for (title, path, key) in [("Calls", "calls", "1"), ("Messages", "messages", "2"), ("Voicemail", "voicemail", "3"),
+                                   ("Settings", "settings", "4")] {
+            add(go, title, #selector(goTo(_:)), key, represented: URL(string: "https://voice.google.com/u/0/\(path)")!)
+        }
+
+        // Window
+        let windowMenu = submenu("Window")
+        add(windowMenu, "Minimize", #selector(NSWindow.performMiniaturize(_:)), "m", target: nil)
+        add(windowMenu, "Zoom", #selector(NSWindow.performZoom(_:)), "", target: nil)
+        windowMenu.addItem(.separator())
+        add(windowMenu, "Show Dialtone", #selector(showPanelAction), "0", [.command, .shift])
+        add(windowMenu, "Bring All to Front", #selector(NSApplication.arrangeInFront(_:)), "", target: NSApp)
+
+        // Help
+        let help = submenu("Help")
+        add(help, "Google Voice Help", #selector(openLink(_:)), represented: URL(string: "https://support.google.com/voice")!)
+        add(help, "Dialtone on GitHub", #selector(openLink(_:)), represented: repo)
+        add(help, "Release Notes", #selector(openLink(_:)), represented: repo.appendingPathComponent("releases"))
+        add(help, "Report an Issue", #selector(openLink(_:)), represented: repo.appendingPathComponent("issues/new"))
 
         NSApp.mainMenu = main
         NSApp.windowsMenu = windowMenu
+        NSApp.helpMenu = help
+    }
+
+    @objc func openLink(_ sender: NSMenuItem) {
+        if let url = sender.representedObject as? URL { NSWorkspace.shared.open(url) }
+    }
+
+    /// Jumps the main view to a Voice section (Calls, Messages, Voicemail, Settings).
+    @objc func goTo(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        popupWindow?.close()
+        webView.load(URLRequest(url: url))
+        showPanelOrWindow()
     }
 
     @objc func toggleMode() {
