@@ -10,6 +10,21 @@ let homeURL = URL(string: "https://voice.google.com/")!
 let windowSize = NSSize(width: 1100, height: 760)
 let panelSize = NSSize(width: 780, height: 700)
 
+// Off by default. Turn on with: defaults write local.googlevoice.native debugLog -bool true
+// Appends to ~/Library/Logs/GoogleVoice.log, to see which request Google rejects.
+func debugLog(_ text: String) {
+    guard UserDefaults.standard.bool(forKey: "debugLog") else { return }
+    let line = "\(Date()) \(text)\n"
+    let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GoogleVoice.log")
+    if let handle = try? FileHandle(forWritingTo: url) {
+        handle.seekToEndOfFile()
+        handle.write(Data(line.utf8))
+        try? handle.close()
+    } else {
+        try? line.write(to: url, atomically: true, encoding: .utf8)
+    }
+}
+
 func isGoogleHost(_ host: String?) -> Bool {
     guard let host = host else { return false }
     return host == "google.com" || host.hasSuffix(".google.com")
@@ -369,6 +384,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         let url = action.request.url
+        debugLog("nav \(action.targetFrame == nil ? "popup" : (action.targetFrame!.isMainFrame ? "main" : "sub")) \(action.request.httpMethod ?? "?") \(url?.absoluteString ?? "nil")")
+        // Google's sign-in ends on the Google Account page; go back to Voice instead.
+        if webView === self.webView, action.targetFrame?.isMainFrame == true, url?.host == "myaccount.google.com",
+           url?.query?.contains("utm_source=sign_in_no_continue") == true {
+            decisionHandler(.cancel)
+            webView.load(URLRequest(url: homeURL))
+            return
+        }
         let inApp = action.targetFrame?.isMainFrame == false || url == nil || isAppURL(url)
             || ["about", "blob", "data"].contains(url?.scheme ?? "")
         if inApp {
@@ -379,14 +402,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
     }
 
+    func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,
+                 decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        if let http = response.response as? HTTPURLResponse, response.isForMainFrame {
+            debugLog("response \(http.statusCode) \(http.url?.absoluteString ?? "nil")")
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        debugLog("failed \(error.localizedDescription)")
+    }
+
     // MARK: Pop-ups (sign-in, call window): only one at a time
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         let url = action.request.url
         let blank = url == nil || url?.absoluteString == "about:blank"
+        debugLog("popup requested \(url?.absoluteString ?? "nil")")
         guard blank || isAppURL(url) else {
             if let url = url, ["http", "https"].contains(url.scheme ?? "") { NSWorkspace.shared.open(url) }
+            return nil
+        }
+        // A link to Voice from another Google page (for example the app launcher) opens in the main view.
+        if !blank, url?.host == "voice.google.com", webView === self.webView, self.webView.url?.host != "voice.google.com" {
+            self.webView.load(action.request)
             return nil
         }
         if let existing = popupWebView {
