@@ -9,7 +9,21 @@ This replaces the Swift version in `../google-voice-menubar`. That one used WebK
 refuse to sign into. This one runs on Electron, which bundles Chromium, and sends Chromium's normal
 user agent.
 
-## Run it on your Mac
+## Native version (no Electron)
+
+`native/` is the same app written in Swift on macOS's built-in WebKit. It is about 400 KB instead of
+about 230 MB, and WebKit updates with macOS, so there is nothing to keep current. It needs only the
+Xcode command line tools to build:
+
+```bash
+native/build.sh        # writes native/build/Google Voice.app and Google-Voice-native.zip
+```
+
+Same modes (normal window, or Menu Bar Mode from the Google Voice menu), one pop-up at a time, and
+notifications and microphone for calls. Not yet checked with a real sign-in: Google may refuse
+WebKit sign-in, and the app sends a Safari user agent to avoid that.
+
+## Run it on your Mac (Electron version)
 
 You need Node.js 20 or later (tested with Node 24) and the Xcode command line tools
 (`xcode-select --install`).
