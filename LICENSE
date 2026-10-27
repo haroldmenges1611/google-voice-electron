@@ -1,0 +1,39 @@
+Dialtone License
+
+Copyright (c) 2026 Harold Menges. All rights reserved.
+
+Dialtone (the "Software") is licensed, not sold. Harold Menges (the "Owner") owns the Software,
+including all copies of it, and all intellectual property rights in it. This license gives you
+permission to use the Software; it does not transfer any ownership.
+
+1. Grant. The Owner grants you a free, non-exclusive, non-transferable, revocable license to install
+   and use the Software, in the form the Owner distributes it, for your own personal or internal
+   business use.
+
+2. Restrictions. Without the Owner's written permission you may not: (a) copy or redistribute the
+   Software or any part of it, except for backups for your own use; (b) modify it, create derivative
+   works, or reverse engineer it, except where the law allows this despite this restriction;
+   (c) sell, rent, lease, sublicense or publish it; (d) remove or alter this notice; or (e) use the
+   name "Dialtone" or its icon for another product.
+
+3. Source code. The source code may be visible on a public website for transparency. Visibility does
+   not grant any right to use, copy, modify or distribute it beyond this license.
+
+4. Updates. The Software may check for and install updates from the Owner's GitHub releases. Updates
+   are covered by this license.
+
+5. Third-party services and marks. The Software displays Google Voice, a service of Google LLC, inside
+   a web view. Dialtone is unofficial and is not affiliated with, endorsed by, or sponsored by Google.
+   Google and Google Voice are trademarks of Google LLC. Your use of Google Voice is governed by
+   Google's terms. The Software also relies on components of macOS, which belong to Apple Inc.
+
+6. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+   INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+
+7. Limit of liability. TO THE MAXIMUM EXTENT THE LAW ALLOWS, THE OWNER IS NOT LIABLE FOR ANY CLAIM OR
+   DAMAGES ARISING FROM THE SOFTWARE OR ITS USE, INCLUDING LOST CALLS, MESSAGES OR DATA.
+
+8. Termination. This license ends automatically if you break it. The Owner may also end it at any
+   time by notice. On termination, stop using the Software and delete your copies.
+
+Questions or permission requests: harold@menges.co

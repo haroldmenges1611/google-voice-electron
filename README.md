@@ -60,3 +60,9 @@ assets/                      menu bar icon (template PNGs)
 scripts/make-app-icon.py     regenerates the app icon (needs macOS sips/iconutil)
 scripts/make-tray-icon.py    regenerates the menu bar icon
 ```
+
+## License
+
+Copyright © 2026 Harold Menges. Free to use, not open source: the owner keeps ownership and all rights,
+and copying, modifying or redistributing it needs written permission. See [LICENSE](LICENSE). Unofficial;
+not affiliated with Google.
