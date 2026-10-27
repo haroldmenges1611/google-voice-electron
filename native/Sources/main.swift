@@ -90,6 +90,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
 
         makeWebView()
+        let bar = NSView(frame: NSRect(x: 0, y: panelSize.height - panelBarHeight, width: panelSize.width, height: panelBarHeight))
+        bar.autoresizingMask = [.width, .minYMargin]
+        bar.addSubview(navBar())
+        panelContainer.addSubview(bar)
         let controller = NSViewController()
         controller.view = panelContainer
         popover.contentViewController = controller
@@ -151,9 +155,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
     }
 
+    // Back, Forward and Home buttons, so there is always a way out of a page (Upgrade, payments).
+    func navBar() -> NSStackView {
+        func button(_ symbol: String, _ tip: String, _ action: Selector) -> NSButton {
+            let image = NSImage(systemSymbolName: symbol, accessibilityDescription: tip) ?? NSImage()
+            let b = NSButton(image: image, target: self, action: action)
+            b.isBordered = false
+            b.toolTip = tip
+            return b
+        }
+        let stack = NSStackView(views: [
+            button("chevron.left", "Back", #selector(goBack)),
+            button("chevron.right", "Forward", #selector(goForward)),
+            button("house", "Back to Voice", #selector(goHome)),
+        ])
+        stack.spacing = 14
+        stack.edgeInsets = NSEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+        stack.frame = NSRect(x: 0, y: 0, width: 110, height: 28)
+        return stack
+    }
+
+    func titlebarNav() -> NSTitlebarAccessoryViewController {
+        let accessory = NSTitlebarAccessoryViewController()
+        accessory.layoutAttribute = .right
+        accessory.view = navBar()
+        return accessory
+    }
+
+    let panelBarHeight: CGFloat = 28
+
     func attach(to host: NSView) {
         webView.removeFromSuperview()
-        webView.frame = host.bounds
+        let bar = host === panelContainer ? panelBarHeight : 0
+        webView.frame = NSRect(x: 0, y: 0, width: host.bounds.width, height: host.bounds.height - bar)
         webView.autoresizingMask = [.width, .height]
         host.addSubview(webView)
     }
@@ -168,6 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             win.minSize = NSSize(width: 520, height: 480)
             win.isReleasedWhenClosed = false
             win.delegate = self
+            win.addTitlebarAccessoryViewController(titlebarNav())
             win.contentView = NSView(frame: NSRect(origin: .zero, size: windowSize))
             if !win.setFrameUsingName("GVMain") { win.center() }
             win.setFrameAutosaveName("GVMain")
@@ -524,6 +559,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         win.isReleasedWhenClosed = false
+        win.addTitlebarAccessoryViewController(titlebarNav())
         win.contentView = view
         win.delegate = self
         win.level = .floating // stays in front of the menu bar panel
