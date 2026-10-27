@@ -74,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     var popupWindow: NSWindow?
     var popupWebView: WKWebView?
     var titleObservation: NSKeyValueObservation?
+    var micObservation: NSKeyValueObservation?
     var quitting = false
     var menuBarMode: Bool {
         get { UserDefaults.standard.string(forKey: "mode") == "menubar" }
@@ -118,6 +119,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                 badge = String(title[title.index(after: title.startIndex)..<end])
             }
             NSApp.dockTile.badgeLabel = Int(badge) != nil ? badge : nil
+        }
+        micObservation = webView.observe(\.microphoneCaptureState) { view, _ in
+            debugLog("microphone state \(view.microphoneCaptureState.rawValue) (0 none, 1 active, 2 muted)")
         }
         webView.load(URLRequest(url: homeURL))
     }
@@ -230,6 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         menu.addItem(.separator())
         menu.addItem(modeItem())
         menu.addItem(loginItem())
+        menu.addItem(releaseMicItem())
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Dialtone", action: #selector(quit), keyEquivalent: "").target = self
         return menu
@@ -242,6 +247,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         item.target = self
         item.state = menuBarMode ? .on : .off
         return item
+    }
+
+    func releaseMicItem() -> NSMenuItem {
+        let item = NSMenuItem(title: "Release Microphone", action: #selector(releaseMicrophone), keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    @objc func releaseMicrophone() {
+        webView.setMicrophoneCaptureState(.none, completionHandler: {})
     }
 
     func loginItem() -> NSMenuItem {
@@ -260,6 +275,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         app.addItem(.separator())
         app.addItem(modeItem())
         app.addItem(loginItem())
+        app.addItem(releaseMicItem())
         app.addItem(.separator())
         app.addItem(withTitle: "Hide Dialtone", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         app.addItem(.separator())
@@ -465,7 +481,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin,
                  initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType,
                  decisionHandler: @escaping (WKPermissionDecision) -> Void) {
-        decisionHandler(origin.protocol == "https" && isGoogleHost(origin.host) ? .grant : .deny)
+        // Only a call needs the microphone, and only while you are using this app. A page grabbing it in
+        // the background would duck other audio and take the headset from other softphones.
+        debugLog("media request type \(type.rawValue) from \(origin.host), app active: \(NSApp.isActive)")
+        let allowed = type == .microphone && NSApp.isActive && origin.protocol == "https" && isGoogleHost(origin.host)
+        decisionHandler(allowed ? .grant : .deny)
     }
 
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
